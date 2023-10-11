@@ -2,21 +2,7 @@ const fs = require('fs');
 const http = require('http');
 const url = require('url');
 
-/////////////////////////////////////////////////////////////////////////////
-// Synch
-// const textIn = fs.readFileSync('./txt/input.txt', 'utf8');
-// console.log(textIn);
 
-// const textOut = `This is output text: ${textIn} \nCreated on ${Date.now()}`;
-// fs.writeFileSync('./txt/output.txt', textOut)
-
-
-// Asynch
-// fs.readFile('./txt/start.txt', 'utf-8', (err, data) => {
-//     console.log('Asynch');
-//     console.log(data);
-// })
-///////////////////////////////////////////////////////////////////////////////
 const templateOverview = fs.readFileSync(`${__dirname}/templates/overview.html`, 'utf-8')
 const templateProduct = fs.readFileSync(`${__dirname}/templates/product.html`, 'utf-8')
 const templateCard = fs.readFileSync(`${__dirname}/templates/card.html`, 'utf-8')
@@ -30,6 +16,9 @@ const replaceTemplate = (template, product) => {
     output = output.replace(/{%PRODUCT_QUANTITY%}/g, product.quantity);
     output = output.replace(/{%PRODUCT_PRICE%}/g, product.price);
     output = output.replace(/{%PRODUCT_ID%}/g, product.id);
+    output = output.replace(/{%FROM%}/g, product.from);
+    output = output.replace(/{%NUTRIENTS%}/g, product.nutrients);
+    output = output.replace(/{%DESCRIPTION%}/g, product.description);
 
     if (!product.organic) {
         output = output.replace(/{%PRODUCT_ISORGANIC%}/g, 'not-organic');
@@ -41,8 +30,10 @@ const replaceTemplate = (template, product) => {
 const server = http.createServer((req, res) => {
     const pathName = req.url
 
+    const { query, pathname } = url.parse(req.url, true)
+
     // Overview Page
-    if (pathName === '/' || pathName === '/overview') {
+    if (pathname === '/' || pathname === '/overview') {
         res.writeHead(200, { 'Content-Type': 'text/html' })
 
         const cardsHtml = dataObj.map(el => replaceTemplate(templateCard, el)).join('');
@@ -50,11 +41,17 @@ const server = http.createServer((req, res) => {
         res.end(output);
 
         // Product Page
-    } else if (pathName === '/product') {
-        res.end('Products');
+    } else if (pathname === '/product') {
+        res.writeHead(200, { 'Content-Type': 'text/html' });
+
+        const id = query.id;
+        const foundProduct = dataObj[id]
+        const output = replaceTemplate(templateProduct, foundProduct)
+
+        res.end(output);
 
         //API
-    } else if (pathName === '/api') {
+    } else if (pathname === '/api') {
         res.writeHead(200, { 'Content-Type': 'application/json' })
         res.end(data);
 
